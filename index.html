@@ -956,8 +956,8 @@ body {
   </div>
 </div>
 
-<!-- Bouton son en jeu -->
-<button id="sound-toggle-game" onclick="toggleSound()" title="Son">🔊</button>
+<!-- Bouton son en jeu (voix TTS) — visible uniquement en mode buzzer audio -->
+<button id="sound-toggle-game" onclick="toggleSound()" title="Bruitages">🔊</button>
 
 <!-- Bouton retour menu en jeu -->
 <button id="btn-back-menu" onclick="confirmBackMenu()">← Menu</button>
@@ -1029,6 +1029,7 @@ let state = {
   timers: [null,null,null,null],
   timerValues: [0,0,0,0],
   soundEnabled: true,
+  voiceEnabled: true,
   audioCtx: null,
   selectedCats: Object.keys(CAT_META),
   buzzerLocked: false,
@@ -1047,15 +1048,22 @@ let state = {
 // ─────────────────────────────────────────────────────────────────────────────
 // SOUND TOGGLE
 // ─────────────────────────────────────────────────────────────────────────────
+// Bouton menu = effets sonores (bips) uniquement
 function toggleSound() {
   initAudio();
   state.soundEnabled = !state.soundEnabled;
   const toggle = document.getElementById('sound-toggle');
+  if (toggle) toggle.className = 'sound-toggle ' + (state.soundEnabled ? 'on' : 'off');
   const gameBtn = document.getElementById('sound-toggle-game');
-  if (toggle) {
-    toggle.className = 'sound-toggle ' + (state.soundEnabled ? 'on' : 'off');
-  }
   if (gameBtn) gameBtn.textContent = state.soundEnabled ? '🔊' : '🔇';
+}
+
+// Bouton en jeu = voix TTS uniquement
+function toggleVoice() {
+  state.voiceEnabled = !state.voiceEnabled;
+  const btn = document.getElementById('sound-toggle-game');
+  if (btn) btn.textContent = state.voiceEnabled ? '🔊' : '🔇';
+  if (!state.voiceEnabled) stopSpeaking();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1329,13 +1337,15 @@ function startGame() {
 
     // Show in-game controls
     document.getElementById('btn-back-menu').style.display = 'block';
-    document.getElementById('sound-toggle-game').style.display = 'flex';
-    document.getElementById('sound-toggle-game').textContent = state.soundEnabled ? '🔊' : '🔇';
-    
+
+    const voiceBtn = document.getElementById('sound-toggle-game');
     const repeatBtn = document.getElementById('btn-repeat-audio');
-    if (state.mode === 'buzzer' && state.buzzerType === 'audio' && state.soundEnabled) {
+    if (state.mode === 'buzzer' && state.buzzerType === 'audio') {
+      voiceBtn.style.display = 'flex';
+      voiceBtn.textContent = state.soundEnabled ? '🔊' : '🔇';
       repeatBtn.style.display = 'flex';
     } else {
+      voiceBtn.style.display = 'none';
       repeatBtn.style.display = 'none';
     }
 
@@ -1415,7 +1425,7 @@ function showCountdown(n, cb) {
 function renderAllQuadrants() {
   state.activePlayers.forEach(i => renderQuadrant(i));
   
-  if (state.mode === 'buzzer' && state.buzzerType === 'audio' && state.soundEnabled) {
+  if (state.mode === 'buzzer' && state.buzzerType === 'audio' && state.voiceEnabled) {
     state.activePlayers.forEach(i => {
       const q = state.questions[i][state.currentQ[i]];
       if (q && !state.answered[i]) {
@@ -1724,7 +1734,7 @@ function nextQuestion(pIdx) {
     if (state.activePlayers.every(i => state.done[i])) {
       checkAllDone();
     } else {
-      if (state.mode === 'buzzer' && state.buzzerType === 'audio' && state.soundEnabled) {
+      if (state.mode === 'buzzer' && state.buzzerType === 'audio' && state.voiceEnabled) {
         state.activePlayers.forEach(i => {
           if (!state.done[i]) {
             const q = state.questions[i][state.currentQ[i]];
@@ -1748,7 +1758,7 @@ function nextQuestion(pIdx) {
     if (state.timerSeconds > 0) startTimer(pIdx);
   }
   
-  if (state.mode === 'buzzer' && state.buzzerType === 'audio' && state.soundEnabled && !state.done[pIdx]) {
+  if (state.mode === 'buzzer' && state.buzzerType === 'audio' && state.voiceEnabled && !state.done[pIdx]) {
     const q = state.questions[pIdx][state.currentQ[pIdx]];
     if (q) {
       setTimeout(() => speakQuestion(q.q, pIdx), 500);
@@ -2037,14 +2047,43 @@ function _getBestFrenchVoice(voices) {
       || frVoices[0];
 }
 
-function _doSpeak(text, playerIdx, voices) {
-  window.speechSynthesis.cancel();
+function speakQuestion(text, playerIdx) {
+  if (!state.voiceEnabled || state.mode !== 'buzzer' || state.buzzerType !== 'audio') return;
+  if (!('speechSynthesis' in window)) return;
+  const voices = _cachedVoices;
+  if (voices.length === 0) {
+    // Attendre que les voix soient chargées
+    window.speechSynthesis.addEventListener('voiceschanged', function once() {
+      window.speechSynthesis.removeEventListener('voiceschanged', once);
+      _doSpeak(text, playerIdx, window.speechSynthesis.getVoices());
+    });
+  } else {
+    _doSpeak(text, playerIdx, voices);
   }
+}
+
+function stopSpeaking() {
+  if ('speechSynthesis' in window) {
+    try { window.speechSynthesis.cancel(); } catch(e) {}
+  }
+}
+
+function _doSpeak(text, playerIdx, voices) {
+  if (!state.voiceEnabled) return;
+  window.speechSynthesis.cancel();
+  const voices2 = voices && voices.length ? voices : _cachedVoices;
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'fr-FR';
+  utt.rate = 0.92;
+  utt.pitch = 1;
+  const v = _getBestFrenchVoice(voices2);
+  if (v) utt.voice = v;
+  window.speechSynthesis.speak(utt);
 }
 
 function repeatCurrentQuestion() {
   if (state.mode !== 'buzzer' || state.buzzerType !== 'audio') return;
-  if (!state.soundEnabled) return;
+  if (!state.voiceEnabled) return;
   initAudio();
   
   state.activePlayers.forEach(i => {
