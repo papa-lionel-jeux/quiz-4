@@ -2,7 +2,7 @@
   "name": "Quiz 4 Joueurs",
   "short_name": "Quiz 4J",
   "description": "Quiz multijoueur pour tablette",
-  "start_url": "./quiz_4joueurs_v4.html",
+  "start_url": "./index.html",
   "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#0a0a12",

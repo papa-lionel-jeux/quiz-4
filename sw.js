@@ -1,6 +1,6 @@
 const CACHE = 'quiz4j-v1';
 const ASSETS = [
-  './quiz_4joueurs_v4.html',
+  './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
