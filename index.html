@@ -17377,7 +17377,7 @@ function buildCatGrid() {
         matches.slice(0,25).forEach(q=>{
           const ans = q.opts[q.ans];
           let flag = '';
-          if(q.q.toLowerCase().includes('drapeau') && FLAG_MAP[ans]) flag = ` <img src="${FLAG_MAP[ans]}" style="height:18px;vertical-align:middle;border-radius:3px;margin-left:6px;border:1px solid rgba(255,255,255,0.2)">`;
+          if(q.q.toLowerCase().includes('drapeau') && FLAG_MAP[ans]) flag = ` <img src="${FLAG_MAP[ans]}" onerror="this.style.display='none'" style="height:18px;vertical-align:middle;border-radius:3px;margin-left:6px;border:1px solid rgba(255,255,255,0.2)">`;
           // niveau de difficulté
           const lvl = q.niveau || '';
           const lvlColor = lvl==='facile' ? 'var(--green)' : lvl==='difficile' ? 'var(--red)' : 'var(--accent)';
@@ -17751,6 +17751,64 @@ function showCountdown(n, cb) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// FLAG CDN → SVG INLINE MAP (pour compatibilité Android WebView / APK)
+// Remplace les URLs flagcdn.com par des SVG inline qui fonctionnent sans réseau
+// ─────────────────────────────────────────────────────────────────────────────
+const FLAG_CDN_TO_SVG = {
+  'fr': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%230055A4" width%3D"1" height%3D"2"/%3E%3Crect fill%3D"%23fff" x%3D"1" width%3D"1" height%3D"2"/%3E%3Crect fill%3D"%23EF4135" x%3D"2" width%3D"1" height%3D"2"/%3E%3C/svg%3E',
+  'ca': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 2 1"%3E%3Crect fill%3D"%23D52B1E" width%3D".5" height%3D"1"/%3E%3Crect fill%3D"%23fff" x%3D".5" width%3D"1" height%3D"1"/%3E%3Crect fill%3D"%23D52B1E" x%3D"1.5" width%3D".5" height%3D"1"/%3E%3C/svg%3E',
+  'jp': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23fff" width%3D"3" height%3D"2"/%3E%3Ccircle fill%3D"%23BC002D" cx%3D"1.5" cy%3D"1" r%3D".6"/%3E%3C/svg%3E',
+  'us': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 19 10"%3E%3Crect fill%3D"%23B22234" width%3D"19" height%3D"10"/%3E%3Cg fill%3D"%23fff"%3E%3Crect y%3D"1" width%3D"19" height%3D"1"/%3E%3Crect y%3D"3" width%3D"19" height%3D"1"/%3E%3Crect y%3D"5" width%3D"19" height%3D"1"/%3E%3Crect y%3D"7" width%3D"19" height%3D"1"/%3E%3Crect y%3D"9" width%3D"19" height%3D"1"/%3E%3C/g%3E%3Crect fill%3D"%233C3B6E" width%3D"8" height%3D"5"/%3E%3C/svg%3E',
+  'ch': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 1 1"%3E%3Crect fill%3D"%23D52B1E" width%3D"1" height%3D"1"/%3E%3Crect fill%3D"%23fff" x%3D".4" y%3D".15" width%3D".2" height%3D".7"/%3E%3Crect fill%3D"%23fff" x%3D".15" y%3D".4" width%3D".7" height%3D".2"/%3E%3C/svg%3E',
+  'gb-wls': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23fff" width%3D"3" height%3D"1"/%3E%3Crect fill%3D"%2300A651" y%3D"1" width%3D"3" height%3D"1"/%3E%3C/svg%3E',
+  'tr': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23E30A17" width%3D"3" height%3D"2"/%3E%3Ccircle fill%3D"%23fff" cx%3D"1.1" cy%3D"1" r%3D".5"/%3E%3Ccircle fill%3D"%23E30A17" cx%3D"1.25" cy%3D"1" r%3D".4"/%3E%3C/svg%3E',
+  'de': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 5 3"%3E%3Crect fill%3D"%23000" width%3D"5" height%3D"1"/%3E%3Crect fill%3D"%23D00" y%3D"1" width%3D"5" height%3D"1"/%3E%3Crect fill%3D"%23FFCE00" y%3D"2" width%3D"5" height%3D"1"/%3E%3C/svg%3E',
+  'es': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23C60B1E" width%3D"3" height%3D"2"/%3E%3Crect fill%3D"%23FFC400" y%3D".5" width%3D"3" height%3D"1"/%3E%3C/svg%3E',
+  'it': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23009246" width%3D"1" height%3D"2"/%3E%3Crect fill%3D"%23fff" x%3D"1" width%3D"1" height%3D"2"/%3E%3Crect fill%3D"%23CE2B37" x%3D"2" width%3D"1" height%3D"2"/%3E%3C/svg%3E',
+  'gb': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 60 30"%3E%3Crect fill%3D"%23012169" width%3D"60" height%3D"30"/%3E%3Cpath stroke%3D"%23fff" stroke-width%3D"6" d%3D"M0 0l60 30M60 0L0 30"/%3E%3Cpath stroke%3D"%23C8102E" stroke-width%3D"4" d%3D"M0 0l60 30M60 0L0 30"/%3E%3Cpath stroke%3D"%23fff" stroke-width%3D"10" d%3D"M30 0v30M0 15h60"/%3E%3Cpath stroke%3D"%23C8102E" stroke-width%3D"6" d%3D"M30 0v30M0 15h60"/%3E%3C/svg%3E',
+  'vn': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23DA251D" width%3D"3" height%3D"2"/%3E%3Cpolygon fill%3D"%23FF0" points%3D"1.5,.4 1.62,.8 2.04,.8 1.7,1.05 1.82,1.45 1.5,1.2 1.18,1.45 1.3,1.05 .96,.8 1.38,.8"/%3E%3C/svg%3E',
+  'pk': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23fff" width%3D"3" height%3D"2"/%3E%3Crect fill%3D"%2301411C" x%3D".75" width%3D"2.25" height%3D"2"/%3E%3C/svg%3E',
+  'ar': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%2374ACDF" width%3D"3" height%3D".667"/%3E%3Crect fill%3D"%23fff" y%3D".667" width%3D"3" height%3D".667"/%3E%3Crect fill%3D"%2374ACDF" y%3D"1.333" width%3D"3" height%3D".667"/%3E%3C/svg%3E',
+  'fi': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 18 11"%3E%3Crect fill%3D"%23fff" width%3D"18" height%3D"11"/%3E%3Crect fill%3D"%23003580" x%3D"5" width%3D"3" height%3D"11"/%3E%3Crect fill%3D"%23003580" y%3D"4" width%3D"18" height%3D"3"/%3E%3C/svg%3E',
+  'se': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 8 5"%3E%3Crect fill%3D"%23006AA7" width%3D"8" height%3D"5"/%3E%3Crect fill%3D"%23FECC00" x%3D"2.5" width%3D"1.5" height%3D"5"/%3E%3Crect fill%3D"%23FECC00" y%3D"2" width%3D"8" height%3D"1"/%3E%3C/svg%3E',
+  'ke': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23000" width%3D"3" height%3D".667"/%3E%3Crect fill%3D"%23BB0000" y%3D".667" width%3D"3" height%3D".667"/%3E%3Crect fill%3D"%23006600" y%3D"1.333" width%3D"3" height%3D".667"/%3E%3C/svg%3E',
+  'hn': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%230073CF" width%3D"3" height%3D".667"/%3E%3Crect fill%3D"%23fff" y%3D".667" width%3D"3" height%3D".667"/%3E%3Crect fill%3D"%230073CF" y%3D"1.333" width%3D"3" height%3D".667"/%3E%3C/svg%3E',
+  'ua': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%230057B7" width%3D"3" height%3D"1"/%3E%3Crect fill%3D"%23FFD700" y%3D"1" width%3D"3" height%3D"1"/%3E%3C/svg%3E',
+  'cy': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23fff" width%3D"3" height%3D"2"/%3E%3Cellipse fill%3D"%23FF8C00" cx%3D"1.5" cy%3D".85" rx%3D".6" ry%3D".4"/%3E%3C/svg%3E',
+  'cn': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23DE2910" width%3D"3" height%3D"2"/%3E%3Cpolygon fill%3D"%23FFDE00" points%3D".5,.3 .57,.5 .77,.5 .61,.62 .68,.82 .5,.7 .32,.82 .39,.62 .23,.5 .43,.5"/%3E%3C/svg%3E',
+  'ie': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23169B62" width%3D"1" height%3D"2"/%3E%3Crect fill%3D"%23fff" x%3D"1" width%3D"1" height%3D"2"/%3E%3Crect fill%3D"%23FF883E" x%3D"2" width%3D"1" height%3D"2"/%3E%3C/svg%3E',
+  'gb-eng': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23fff" width%3D"3" height%3D"2"/%3E%3Crect fill%3D"%23CE1126" x%3D"1.25" width%3D".5" height%3D"2"/%3E%3Crect fill%3D"%23CE1126" y%3D".75" width%3D"3" height%3D".5"/%3E%3C/svg%3E',
+  'uy': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 9 6"%3E%3Crect fill%3D"%23fff" width%3D"9" height%3D"6"/%3E%3Cg fill%3D"%230038A8"%3E%3Crect width%3D"9" height%3D"1"/%3E%3Crect y%3D"2" width%3D"9" height%3D"1"/%3E%3Crect y%3D"4" width%3D"9" height%3D"1"/%3E%3C/g%3E%3C/svg%3E',
+  'mx': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23006847" width%3D"1" height%3D"2"/%3E%3Crect fill%3D"%23fff" x%3D"1" width%3D"1" height%3D"2"/%3E%3Crect fill%3D"%23CE1126" x%3D"2" width%3D"1" height%3D"2"/%3E%3C/svg%3E',
+  'mr': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23006233" width%3D"3" height%3D"2"/%3E%3C/svg%3E',
+  'ph': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%230038A8" width%3D"3" height%3D"1"/%3E%3Crect fill%3D"%23CE1126" y%3D"1" width%3D"3" height%3D"1"/%3E%3Cpolygon fill%3D"%23fff" points%3D"0,0 1.2,1 0,2"/%3E%3C/svg%3E',
+  'bd': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23006A4E" width%3D"3" height%3D"2"/%3E%3Ccircle fill%3D"%23F42A41" cx%3D"1.4" cy%3D"1" r%3D".6"/%3E%3C/svg%3E',
+  'cu': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%230066CC" width%3D"3" height%3D".4"/%3E%3Crect fill%3D"%23fff" y%3D".4" width%3D"3" height%3D".4"/%3E%3Crect fill%3D"%230066CC" y%3D".8" width%3D"3" height%3D".4"/%3E%3Crect fill%3D"%23fff" y%3D"1.2" width%3D"3" height%3D".4"/%3E%3Crect fill%3D"%230066CC" y%3D"1.6" width%3D"3" height%3D".4"/%3E%3Cpolygon fill%3D"%23CC0000" points%3D"0,0 1.1,1 0,2"/%3E%3C/svg%3E',
+  'gb-sct': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23003399" width%3D"3" height%3D"2"/%3E%3Cpath stroke%3D"%23fff" stroke-width%3D".4" d%3D"M0 0l3 2M3 0L0 2"/%3E%3C/svg%3E',
+  'al': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23E41E20" width%3D"3" height%3D"2"/%3E%3C/svg%3E',
+  'at': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23ED2939" width%3D"3" height%3D".667"/%3E%3Crect fill%3D"%23fff" y%3D".667" width%3D"3" height%3D".667"/%3E%3Crect fill%3D"%23ED2939" y%3D"1.333" width%3D"3" height%3D".667"/%3E%3C/svg%3E',
+  'br': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 10 7"%3E%3Crect fill%3D"%23009B3A" width%3D"10" height%3D"7"/%3E%3Cpolygon fill%3D"%23FEDD00" points%3D"5,1 9,3.5 5,6 1,3.5"/%3E%3Ccircle fill%3D"%23002776" cx%3D"5" cy%3D"3.5" r%3D"1.5"/%3E%3C/svg%3E',
+  'ec': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23FFD100" width%3D"3" height%3D".8"/%3E%3Crect fill%3D"%230033A0" y%3D".8" width%3D"3" height%3D".6"/%3E%3Crect fill%3D"%23CE1126" y%3D"1.4" width%3D"3" height%3D".6"/%3E%3C/svg%3E',
+  'eg': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23CE1126" width%3D"3" height%3D".667"/%3E%3Crect fill%3D"%23fff" y%3D".667" width%3D"3" height%3D".667"/%3E%3Crect fill%3D"%23000" y%3D"1.333" width%3D"3" height%3D".667"/%3E%3C/svg%3E',
+  'gh': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23006B3F" width%3D"3" height%3D".667"/%3E%3Crect fill%3D"%23FCD116" y%3D".667" width%3D"3" height%3D".667"/%3E%3Crect fill%3D"%23CE1126" y%3D"1.333" width%3D"3" height%3D".667"/%3E%3C/svg%3E',
+  'gt': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%234997D0" width%3D"1" height%3D"2"/%3E%3Crect fill%3D"%23fff" x%3D"1" width%3D"1" height%3D"2"/%3E%3Crect fill%3D"%234997D0" x%3D"2" width%3D"1" height%3D"2"/%3E%3C/svg%3E',
+  'hr': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23FF0000" width%3D"3" height%3D".667"/%3E%3Crect fill%3D"%23fff" y%3D".667" width%3D"3" height%3D".667"/%3E%3Crect fill%3D"%230000CD" y%3D"1.333" width%3D"3" height%3D".667"/%3E%3C/svg%3E',
+  'in': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23FF9933" width%3D"3" height%3D".667"/%3E%3Crect fill%3D"%23fff" y%3D".667" width%3D"3" height%3D".667"/%3E%3Crect fill%3D"%23138808" y%3D"1.333" width%3D"3" height%3D".667"/%3E%3C/svg%3E',
+  'is': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 25 18"%3E%3Crect fill%3D"%23003897" width%3D"25" height%3D"18"/%3E%3Crect fill%3D"%23fff" x%3D"7" width%3D"4" height%3D"18"/%3E%3Crect fill%3D"%23fff" y%3D"7" width%3D"25" height%3D"4"/%3E%3Crect fill%3D"%23D72828" x%3D"8" width%3D"2" height%3D"18"/%3E%3Crect fill%3D"%23D72828" y%3D"8" width%3D"25" height%3D"2"/%3E%3C/svg%3E',
+  'lk': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%238D153A" width%3D"3" height%3D"2"/%3E%3Crect fill%3D"%230F8000" width%3D".4" height%3D"2"/%3E%3Crect fill%3D"%23FF7300" x%3D".4" width%3D".4" height%3D"2"/%3E%3C/svg%3E',
+  'ma': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 3 2"%3E%3Crect fill%3D"%23C1272D" width%3D"3" height%3D"2"/%3E%3Cpolygon fill%3D"none" stroke%3D"%23006233" stroke-width%3D".07" points%3D"1.5,.5 1.6,.85 1.95,.85 1.67,1.05 1.77,1.4 1.5,1.2 1.23,1.4 1.33,1.05 1.05,.85 1.4,.85"/%3E%3C/svg%3E',
+  'no': 'data:image/svg+xml,%3Csvg xmlns%3D"http%3A//www.w3.org/2000/svg" viewBox%3D"0 0 11 8"%3E%3Crect fill%3D"%23BA0C2F" width%3D"11" height%3D"8"/%3E%3Crect fill%3D"%23fff" x%3D"3" width%3D"2" height%3D"8"/%3E%3Crect fill%3D"%23fff" y%3D"3" width%3D"11" height%3D"2"/%3E%3Crect fill%3D"%23003680" x%3D"3.5" width%3D"1" height%3D"8"/%3E%3Crect fill%3D"%23003680" y%3D"3.5" width%3D"11" height%3D"1"/%3E%3C/svg%3E'
+};
+
+// Convertit une URL flagcdn.com en SVG inline si disponible
+function resolveFlagUrl(url) {
+  if (!url) return url;
+  const match = url.match(/flagcdn\.com\/h\d+\/([^.]+)\.png/);
+  if (match && FLAG_CDN_TO_SVG[match[1]]) return FLAG_CDN_TO_SVG[match[1]];
+  return url;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // RENDER
 // ─────────────────────────────────────────────────────────────────────────────
 function renderAllQuadrants() {
@@ -17843,7 +17901,7 @@ function renderQuadrant(pIdx) {
         ${state.mode === 'buzzer' && state.buzzerType === 'audio' ? '<span class="audio-playing" id="audio-indicator-' + pIdx + '" style="display:none">🔊 Lecture...</span>' : ''}
       </div>
       <div class="q-text" ${state.mode === 'buzzer' && state.buzzerType === 'audio' ? 'style="display:none"' : ''}>${q.q}</div>
-      ${(q.image||q.flag) ? `<img src="${q.image||q.flag}" style="height:48px;margin-top:10px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);">` : ''}
+      ${(q.image||q.flag) ? `<img src="${resolveFlagUrl(q.image||q.flag)}" onerror="this.style.display='none'" style="height:48px;margin-top:10px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);">` : ''}
     </div>
     <div class="q-opts">${opts}</div>
     <div class="q-feedback" id="feedback-${pIdx}"></div>
